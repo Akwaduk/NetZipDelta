@@ -11,11 +11,11 @@ namespace NetZipDelta
         public static void GetDiffFile(string FileOnePath, string FileTwoPath, string OutputFile)
         {
             // Debug
-            FileOnePath = "C:\\Users\\akwad\\Desktop\\";
-            FileTwoPath = "C:\\Users\\akwad\\Desktop\\";
-            var NewZipPath = "C:\\Users\\akwad\\Desktop\\";
-            var FileOneZip = FileOnePath + "BackUp.zip";
-            var FileTwoZip = FileTwoPath + "BackUp2.zip";            
+            FileOnePath = "C:\\Users\\e4451\\Desktop\\";
+            FileTwoPath = "C:\\Users\\e4451\\Desktop\\";
+            var NewZipPath = "C:\\Users\\e4451\\Desktop\\";
+            var FileOneZip = FileOnePath + "Core-1806.zip";
+            var FileTwoZip = FileTwoPath + "Core-1908.zip";
             var NewZip = NewZipPath + "NewZip.zip";
 
             List<ZipArchiveEntry> OldFiles = new List<ZipArchiveEntry>();
@@ -50,7 +50,7 @@ namespace NetZipDelta
 
                     var j = 0;
 
-                    for (var i = 0; i < MaxListSize; i++)
+                    for (var i = 0; i < OldFiles.Count; i++)
                     {
                         j = i;
                         if (j >= NewFiles.Count)
@@ -83,14 +83,12 @@ namespace NetZipDelta
 
                         if (OldFiles[i].FullName == NewFiles[j].FullName)
                         {
-                            if (OldFiles[i].LastWriteTime == NewFiles[j].LastWriteTime)
-                            {
-                                MatchedOldIndexes.Add(j);
-                                // Same file                        
-                            }
-                            else
+                            if (NewFileHasBeenUpdated(OldFiles[i], NewFiles[j]))
                             {
                                 FilesToKeep.Add(NewFiles[j]);
+                                MatchedOldIndexes.Add(j);
+                            } else
+                            {
                                 MatchedOldIndexes.Add(j);
                             }
                         }
@@ -107,27 +105,75 @@ namespace NetZipDelta
 
                     foreach (ZipArchiveEntry entry in FilesToKeep)
                     {
-                        var length = entry.FullName.IndexOf('/');
+                        var length = entry.FullName.LastIndexOf('/');
+                        if (length == -1)
+                        {
+                            length = 0;
+                        }
+
                         var directory = entry.FullName.Substring(0, length);
                         DirectoryInfo di = Directory.CreateDirectory(NewZip + "\\" + directory);
 
                         var filename = entry.Name;
-                        entry.ExtractToFile(di + "\\" + filename);
+                        if (string.IsNullOrEmpty(filename) != true && File.Exists(di + "\\" + filename) == false)
+                        {
+                            entry.ExtractToFile(di + "\\" + filename);
+                        }                        
                     }
 
                     foreach (ZipArchiveEntry entry in FilesToDelete)
                     {
-                        var length = entry.FullName.IndexOf('/');
+                        var length = entry.FullName.LastIndexOf('/');
+                        if (length == -1)
+                        {
+                            length = 0;
+                        }
+
                         var directory = entry.FullName.Substring(0, length);
                         DirectoryInfo di = Directory.CreateDirectory(NewZip + "\\" + directory);
 
                         var filename = entry.Name;
-                        entry.ExtractToFile(di + "\\" + "_DEL_" + filename);
+                        if (string.IsNullOrEmpty(filename) != true && File.Exists(di + "\\" + filename) == false)
+                        {
+                            entry.ExtractToFile(di + "\\" + "_DEL_" + filename);
+                        }
                     }
                 }
             }
-                        
+
             var test = "";
+        }
+
+        private static bool NewFileHasBeenUpdated(ZipArchiveEntry OldArchiveEntry, ZipArchiveEntry NewArchiveEntry)
+        {
+            var FileHasBeenUpdated = true;
+            // Knockout easy tests first
+            if (OldArchiveEntry.LastWriteTime == NewArchiveEntry.LastWriteTime)
+            {
+                // Same File
+                FileHasBeenUpdated = false;                       
+            }
+            if (OldArchiveEntry.Length != NewArchiveEntry.Length)
+            {
+                // Different File
+                FileHasBeenUpdated = true;
+            }
+
+            using (StreamReader OldReader = new StreamReader(OldArchiveEntry.Open()))
+            {
+                var OldBytes = OldReader.ReadToEnd();
+                using (StreamReader NewReader = new StreamReader(NewArchiveEntry.Open()))
+                {
+                    var NewBytes = NewReader.ReadToEnd();
+                    if (OldBytes == NewBytes)
+                    {
+                        FileHasBeenUpdated = false;
+                    }
+                }
+            }
+
+            // Probably a different file
+            return FileHasBeenUpdated;
         }
     }
 }
