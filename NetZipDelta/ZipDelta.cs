@@ -8,16 +8,8 @@ namespace NetZipDelta
 {
     public static class ZipDelta
     {
-        public static void GetDiffFile(string FileOnePath, string FileTwoPath, string OutputFile)
+        public static void GetDeltaFile(string FileOneZip, string FileTwoZip, string OutputDirectory, string OutputZipFileName)
         {
-            // Debug
-            FileOnePath = "C:\\Users\\e4451\\Desktop\\";
-            FileTwoPath = "C:\\Users\\e4451\\Desktop\\";
-            var NewZipPath = "C:\\Users\\e4451\\Desktop\\";
-            var FileOneZip = FileOnePath + "Core-1806.zip";
-            var FileTwoZip = FileTwoPath + "Core-1908.zip";
-            var NewZip = NewZipPath + "NewZip.zip";
-
             List<ZipArchiveEntry> OldFiles = new List<ZipArchiveEntry>();
             List<ZipArchiveEntry> NewFiles = new List<ZipArchiveEntry>();
             List<ZipArchiveEntry> FilesToKeep = new List<ZipArchiveEntry>();
@@ -112,7 +104,7 @@ namespace NetZipDelta
                         }
 
                         var directory = entry.FullName.Substring(0, length);
-                        DirectoryInfo di = Directory.CreateDirectory(NewZip + "\\" + directory);
+                        DirectoryInfo di = Directory.CreateDirectory(OutputDirectory + "\\" + directory);
 
                         var filename = entry.Name;
                         if (string.IsNullOrEmpty(filename) != true && File.Exists(di + "\\" + filename) == false)
@@ -130,7 +122,7 @@ namespace NetZipDelta
                         }
 
                         var directory = entry.FullName.Substring(0, length);
-                        DirectoryInfo di = Directory.CreateDirectory(NewZip + "\\" + directory);
+                        DirectoryInfo di = Directory.CreateDirectory(OutputDirectory + "\\" + directory);
 
                         var filename = entry.Name;
                         if (string.IsNullOrEmpty(filename) != true && File.Exists(di + "\\" + filename) == false)
@@ -138,12 +130,19 @@ namespace NetZipDelta
                             entry.ExtractToFile(di + "\\" + "_DEL_" + filename);
                         }
                     }
+
+                    ZipFile.CreateFromDirectory(OutputDirectory, OutputZipFileName);
+                    Directory.Delete(OutputDirectory, true);
                 }
             }
-
-            var test = "";
         }
 
+        /// <summary>
+        /// Determines if a file has been updated in the newer zip file. Checks date modified, archive length, then compares bytes
+        /// </summary>
+        /// <param name="OldArchiveEntry">What the zip archive file used to be</param>
+        /// <param name="NewArchiveEntry">What the zip archive file is now</param>
+        /// <returns></returns>
         private static bool NewFileHasBeenUpdated(ZipArchiveEntry OldArchiveEntry, ZipArchiveEntry NewArchiveEntry)
         {
             var FileHasBeenUpdated = true;
