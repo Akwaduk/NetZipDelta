@@ -52,7 +52,7 @@ namespace NetZipDelta
 
                         bool lap = false;
 
-                        while (OldFiles[i].FullName != NewFiles[j].FullName)
+                        while (OldFiles[i].FullName.ToLower() != NewFiles[j].FullName.ToLower())
                         {
                             // End of array, check if we need to go back around
                             if (j == NewFiles.Count - 1)
@@ -73,7 +73,7 @@ namespace NetZipDelta
                             j = j + 1;
                         }
 
-                        if (OldFiles[i].FullName == NewFiles[j].FullName)
+                        if (OldFiles[i].FullName.ToLower() == NewFiles[j].FullName.ToLower())
                         {
                             if (NewFileHasBeenUpdated(OldFiles[i], NewFiles[j]))
                             {
@@ -105,11 +105,12 @@ namespace NetZipDelta
 
                         var directory = entry.FullName.Substring(0, length);
                         DirectoryInfo di = Directory.CreateDirectory(OutputDirectory + "\\" + directory);
-
+                        var directoryName = OutputDirectory + "\\" + directory;
                         var filename = entry.Name;
+
                         if (string.IsNullOrEmpty(filename) != true && File.Exists(di + "\\" + filename) == false)
                         {
-                            entry.ExtractToFile(di + "\\" + filename);
+                            entry.ExtractToFile(directoryName + "\\" + filename);
                         }                        
                     }
 
@@ -123,11 +124,12 @@ namespace NetZipDelta
 
                         var directory = entry.FullName.Substring(0, length);
                         DirectoryInfo di = Directory.CreateDirectory(OutputDirectory + "\\" + directory);
-
+                        var directoryName = OutputDirectory + "\\" + directory;
                         var filename = entry.Name;
+
                         if (string.IsNullOrEmpty(filename) != true && File.Exists(di + "\\" + filename) == false)
                         {
-                            entry.ExtractToFile(di + "\\" + "_DEL_" + filename);
+                            entry.ExtractToFile(directoryName + "\\" + "_DEL_" + filename);
                         }
                     }
 
