@@ -79,7 +79,8 @@ namespace NetZipDelta
                             {
                                 FilesToKeep.Add(NewFiles[j]);
                                 MatchedOldIndexes.Add(j);
-                            } else
+                            }
+                            else
                             {
                                 MatchedOldIndexes.Add(j);
                             }
@@ -111,7 +112,7 @@ namespace NetZipDelta
                         if (string.IsNullOrEmpty(filename) != true && File.Exists(di + "\\" + filename) == false)
                         {
                             entry.ExtractToFile(directoryName + "\\" + filename);
-                        }                        
+                        }
                     }
 
                     foreach (ZipArchiveEntry entry in FilesToDelete)
@@ -152,7 +153,7 @@ namespace NetZipDelta
             if (OldArchiveEntry.LastWriteTime == NewArchiveEntry.LastWriteTime)
             {
                 // Same File
-                FileHasBeenUpdated = false;                       
+                FileHasBeenUpdated = false;
             }
             if (OldArchiveEntry.Length != NewArchiveEntry.Length)
             {
@@ -175,6 +176,89 @@ namespace NetZipDelta
 
             // Probably a different file
             return FileHasBeenUpdated;
+        }
+
+        static void CompareZipFiles(string fileOneZip, string fileTwoZip)
+        {
+            List<ZipArchiveEntry> oldFiles = new List<ZipArchiveEntry>();
+            List<ZipArchiveEntry> newFiles = new List<ZipArchiveEntry>();
+
+            using (ZipArchive archive = ZipFile.OpenRead(fileOneZip))
+            {
+                foreach (ZipArchiveEntry entry in archive.Entries)
+                {
+                    oldFiles.Add(entry);
+                }
+            }
+
+            using (ZipArchive archive = ZipFile.OpenRead(fileTwoZip))
+            {
+                foreach (ZipArchiveEntry entry in archive.Entries)
+                {
+                    newFiles.Add(entry);
+                }
+            }
+
+            Console.WriteLine("Comparing files between two zip archives:");
+
+            foreach (ZipArchiveEntry oldEntry in oldFiles)
+            {
+                ZipArchiveEntry newEntry = newFiles.Find(x => x.FullName == oldEntry.FullName);
+
+                if (newEntry == null)
+                {
+                    Console.WriteLine($"File '{oldEntry.FullName}' is missing in the second zip file.");
+                    continue;
+                }
+
+                if (oldEntry.Length != newEntry.Length)
+                {
+                    Console.WriteLine($"File '{oldEntry.FullName}' has different sizes between the two zip files.");
+                    continue;
+                }
+
+                using (Stream oldEntryStream = oldEntry.Open())
+                using (Stream newEntryStream = newEntry.Open())
+                {
+                    if (!StreamsAreEqual(oldEntryStream, newEntryStream))
+                    {
+                        Console.WriteLine($"File '{oldEntry.FullName}' has different content between the two zip files.");
+                    }
+                }
+            }
+        }
+
+        static bool StreamsAreEqual(Stream stream1, Stream stream2)
+        {
+            const int bufferSize = 1024 * sizeof(long);
+            byte[] buffer1 = new byte[bufferSize];
+            byte[] buffer2 = new byte[bufferSize];
+
+            while (true)
+            {
+                int count1 = stream1.Read(buffer1, 0, bufferSize);
+                int count2 = stream2.Read(buffer2, 0, bufferSize);
+
+                if (count1 != count2)
+                    return false;
+
+                if (count1 == 0)
+                    return true;
+
+                if (!CompareByteArrays(buffer1, buffer2, count1))
+                    return false;
+            }
+        }
+
+        static bool CompareByteArrays(byte[] buffer1, byte[] buffer2, int count)
+        {
+            for (int i = 0; i < count; i++)
+            {
+                if (buffer1[i] != buffer2[i])
+                    return false;
+            }
+
+            return true;
         }
     }
 }
